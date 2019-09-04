@@ -1,0 +1,101 @@
+{
+  "_args": [
+    [
+      {
+        "raw": "react-native-audio@^4.1.3",
+        "scope": null,
+        "escapedName": "react-native-audio",
+        "name": "react-native-audio",
+        "rawSpec": "^4.1.3",
+        "spec": ">=4.1.3 <5.0.0",
+        "type": "range"
+      },
+      "E:\\workspace\\RNTEST\\InstantMessage"
+    ]
+  ],
+  "_from": "react-native-audio@>=4.1.3 <5.0.0",
+  "_id": "react-native-audio@4.1.3",
+  "_inCache": true,
+  "_location": "/react-native-audio",
+  "_nodeVersion": "9.5.0",
+  "_npmOperationalInternal": {
+    "host": "s3://npm-registry-packages",
+    "tmp": "tmp/react-native-audio_4.1.3_1524601793210_0.23996435309240627"
+  },
+  "_npmUser": {
+    "name": "jsierles",
+    "email": "joshua@diluvia.net"
+  },
+  "_npmVersion": "5.6.0",
+  "_phantomChildren": {},
+  "_requested": {
+    "raw": "react-native-audio@^4.1.3",
+    "scope": null,
+    "escapedName": "react-native-audio",
+    "name": "react-native-audio",
+    "rawSpec": "^4.1.3",
+    "spec": ">=4.1.3 <5.0.0",
+    "type": "range"
+  },
+  "_requiredBy": [
+    "/"
+  ],
+  "_resolved": "https://registry.npmjs.org/react-native-audio/-/react-native-audio-4.1.3.tgz",
+  "_shasum": "cab41703419f57c6d4de9c6bfd27f8fc54a4acaf",
+  "_shrinkwrap": null,
+  "_spec": "react-native-audio@^4.1.3",
+  "_where": "E:\\workspace\\RNTEST\\InstantMessage",
+  "author": {
+    "name": "Joshua Sierles",
+    "email": "joshua@diluvia.net",
+    "url": "https://github.com/jsierles"
+  },
+  "bugs": {
+    "url": "https://github.com/jsierles/react-native-audio/issues"
+  },
+  "dependencies": {},
+  "description": "React Native extension for recording audio",
+  "devDependencies": {},
+  "directories": {},
+  "dist": {
+    "integrity": "sha512-u8JqLQZ4875wxtuzKUMIDMyDZTlq3df5/+jxg6xhLYYGpTVDV+YlDMouoW5KZVGVJDj7G1FYa1nsFI5t4qidGQ==",
+    "shasum": "cab41703419f57c6d4de9c6bfd27f8fc54a4acaf",
+    "tarball": "https://registry.npmjs.org/react-native-audio/-/react-native-audio-4.1.3.tgz",
+    "fileCount": 15,
+    "unpackedSize": 51173,
+    "npm-signature": "-----BEGIN PGP SIGNATURE-----\r\nVersion: OpenPGP.js v3.0.4\r\nComment: https://openpgpjs.org\r\n\r\nwsFcBAEBCAAQBQJa35PBCRA9TVsSAnZWagAAbFEP/3YlaV7dywR1UmnAGoZW\nhJLmCv1Jw1DsLmw+CvoOWnjPxopt0iLULohr7lVWPcZRKRPNNrYQHubgZiZN\nPH/Y1fZ+5zVvy6nE2SMWnLhQEYIa4bXGeR9ZUmVDXjzOZ5lgLtJ0OvfysU7o\nPP7xXDmKHFVjdD3Q2KYPu5qI4S3hPk963Sqsm2q7kf/9Ln8fXomYjyJTxJH4\nCYCZFRZgyE4T9W4nIF9p2cY/WIG1+sK+3DQgQOJ85wOxWo5alPIeADU2/tNm\nNjZ6PrXvbOq0DkpBsvMuSTnvNjKePIL+OPlMcuqbgcZjWqjmmbyKMWeh7lUn\nBWBsRlV4OWt6ZS5R2c91/L+ssJwR68fQ25S4W7fWumwYFU+dsdrySLORTK2b\neZY6gPyVLLD83I8pClGUwuREqroRzt8tvk53rzawm2RAy692leyz24XZ4eBd\nzoijdv2vRJKLYn5A5rcWtVyYhaudIkv2Gz4228w/79O/YBOnffp9eZYdOVvU\nx32hrNrEksIKr9PvFjYD/0O8mlpQIW+d4RQaNVfoIvCMa1s0JGYT1Tq5Ocd0\n47Unqf4DfGx695GrIovG3lUGqeXyZLP49BRJLsMJMTfV1ZNeqM+BwC4omrEy\nYYoEhTWFZsmHD7fs6kS0br/ZHpWtKiVi4n26CxWGIWGOjDLtdiQ8uf99dTgr\n5E9M\r\n=TZiC\r\n-----END PGP SIGNATURE-----\r\n"
+  },
+  "files": [
+    "ios/AudioRecorderManager.m",
+    "ios/AudioRecorderManager.h",
+    "ios/RNAudio.xcodeproj",
+    "README.md",
+    "LICENSE",
+    "index.js",
+    "android/*",
+    "RNAudio.podspec"
+  ],
+  "gitHead": "3995362b8e0be43d7c951aeb53a811e22226939d",
+  "homepage": "https://github.com/jsierles/react-native-audio#readme",
+  "keywords": [
+    "react-native",
+    "audio",
+    "record"
+  ],
+  "main": "index.js",
+  "maintainers": [
+    {
+      "name": "jsierles",
+      "email": "joshua@diluvia.net"
+    }
+  ],
+  "name": "react-native-audio",
+  "nativePackage": true,
+  "optionalDependencies": {},
+  "readme": "ERROR: No README data found!",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/jsierles/react-native-audio.git"
+  },
+  "version": "4.1.3"
+}

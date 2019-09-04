@@ -1,0 +1,79 @@
+{
+  "_args": [
+    [
+      "react-native-qrcode-scanner@1.1.2",
+      "D:\\project\\zkzy\\InstantMessage"
+    ]
+  ],
+  "_from": "react-native-qrcode-scanner@1.1.2",
+  "_id": "react-native-qrcode-scanner@1.1.2",
+  "_inBundle": false,
+  "_integrity": "sha1-W237Tv0meoEL7bHwm3ycy20yHiA=",
+  "_location": "/react-native-qrcode-scanner",
+  "_phantomChildren": {},
+  "_requested": {
+    "type": "version",
+    "registry": true,
+    "raw": "react-native-qrcode-scanner@1.1.2",
+    "name": "react-native-qrcode-scanner",
+    "escapedName": "react-native-qrcode-scanner",
+    "rawSpec": "1.1.2",
+    "saveSpec": null,
+    "fetchSpec": "1.1.2"
+  },
+  "_requiredBy": [
+    "/"
+  ],
+  "_resolved": "http://registry.npm.taobao.org/react-native-qrcode-scanner/download/react-native-qrcode-scanner-1.1.2.tgz",
+  "_spec": "1.1.2",
+  "_where": "D:\\project\\zkzy\\InstantMessage",
+  "author": {
+    "name": "Moaaz Sidat"
+  },
+  "bugs": {
+    "url": "https://github.com/moaazsidat/react-native-qrcode-scanner/issues"
+  },
+  "dependencies": {
+    "prop-types": "^15.5.10",
+    "react-native-permissions": "1.1.1"
+  },
+  "description": "A QR code scanner for React Native.",
+  "devDependencies": {
+    "babel-eslint": "^8.2.3",
+    "eslint": "^4.19.1",
+    "husky": "^0.14.3",
+    "lint-staged": "^7.1.0",
+    "prettier": "^1.12.1"
+  },
+  "homepage": "https://github.com/moaazsidat/react-native-qrcode-scanner#readme",
+  "keywords": [
+    "react-native",
+    "react",
+    "ios",
+    "qrcode",
+    "qr",
+    "scanner",
+    "barcode"
+  ],
+  "license": "MIT",
+  "lint-staged": {
+    "*.js": [
+      "prettier --single-quote --trailing-comma es5 --tab-width 2 --write",
+      "git add"
+    ]
+  },
+  "main": "index.js",
+  "name": "react-native-qrcode-scanner",
+  "peerDependencies": {
+    "react-native-camera": "^1.0.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/moaazsidat/react-native-qrcode-scanner.git"
+  },
+  "scripts": {
+    "precommit": "lint-staged",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "version": "1.1.2"
+}

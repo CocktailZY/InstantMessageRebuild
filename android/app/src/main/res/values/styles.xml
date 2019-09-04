@@ -1,0 +1,11 @@
+<resources>
+
+    <!-- Base application theme. -->
+    <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
+        <!-- Customize your theme here. -->
+        <!-- @style/AppEditTextStyle-->
+    </style>
+
+    <!--<style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar"> @style/AppEditTextStyle </style> -->
+    <!--<style name="AppEditTextStyle" parent="@style/Widget.AppCompat.EditText">@android:colors/transparent</style>-->
+</resources>

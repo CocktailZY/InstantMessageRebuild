@@ -1,0 +1,52 @@
+{
+  "_from": "react-native-mixpush-android",
+  "_id": "react-native-mixpush-android@1.0.8",
+  "_inBundle": false,
+  "_integrity": "sha1-vml6xwqZVHCyK/mhtap02jH3cK0=",
+  "_location": "/react-native-mixpush-android",
+  "_phantomChildren": {},
+  "_requested": {
+    "type": "tag",
+    "registry": true,
+    "raw": "react-native-mixpush-android",
+    "name": "react-native-mixpush-android",
+    "escapedName": "react-native-mixpush-android",
+    "rawSpec": "",
+    "saveSpec": null,
+    "fetchSpec": "latest"
+  },
+  "_requiredBy": [
+    "#USER",
+    "/"
+  ],
+  "_resolved": "http://registry.npm.taobao.org/react-native-mixpush-android/download/react-native-mixpush-android-1.0.8.tgz",
+  "_shasum": "be697ac70a995470b22bf9a1b5aa74da31f770ad",
+  "_spec": "react-native-mixpush-android",
+  "_where": "F:\\svn_project\\InstantMessage",
+  "author": {
+    "name": "wangheng3751"
+  },
+  "bugs": {
+    "url": "https://github.com/wangheng3751/react-native-mixpush/issues"
+  },
+  "bundleDependencies": false,
+  "deprecated": false,
+  "description": "集成小米推送、华为推送、魅族推送及个推推送的React-Native版本!",
+  "homepage": "https://github.com/wangheng3751/react-native-mixpush#readme",
+  "keywords": [
+    "push",
+    "mixpush",
+    "react-native-push"
+  ],
+  "license": "ISC",
+  "main": "index.js",
+  "name": "react-native-mixpush-android",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wangheng3751/react-native-mixpush.git"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "version": "1.0.8"
+}

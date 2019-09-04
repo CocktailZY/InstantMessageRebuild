@@ -1,0 +1,66 @@
+{
+  "_args": [
+    [
+      "react-native-doc-viewer@2.7.8",
+      "F:\\svn_project\\InstantMessage"
+    ]
+  ],
+  "_from": "react-native-doc-viewer@2.7.8",
+  "_id": "react-native-doc-viewer@2.7.8",
+  "_inBundle": false,
+  "_integrity": "sha1-Q9BlMo+xt+yQ0yHlvSNHEegHyPY=",
+  "_location": "/react-native-doc-viewer",
+  "_phantomChildren": {},
+  "_requested": {
+    "type": "version",
+    "registry": true,
+    "raw": "react-native-doc-viewer@2.7.8",
+    "name": "react-native-doc-viewer",
+    "escapedName": "react-native-doc-viewer",
+    "rawSpec": "2.7.8",
+    "saveSpec": null,
+    "fetchSpec": "2.7.8"
+  },
+  "_requiredBy": [
+    "/"
+  ],
+  "_resolved": "http://registry.npm.taobao.org/react-native-doc-viewer/download/react-native-doc-viewer-2.7.8.tgz",
+  "_spec": "2.7.8",
+  "_where": "F:\\svn_project\\InstantMessage",
+  "author": {
+    "name": "Philipp Hecht"
+  },
+  "bugs": {
+    "url": "https://github.com/philipphecht/react-native-doc-viewer/issues"
+  },
+  "description": "React Native Native Module Bridge Quicklock Document Viewer for IOS + Android supports pdf, png, jpg, xls, ppt, doc, docx, pptx, xlx + Video Player mp4 supported ",
+  "homepage": "https://github.com/philipphecht/react-native-doc-viewer/blob/master/README.md",
+  "keywords": [
+    "react-native",
+    "react",
+    "native",
+    "ios",
+    "android",
+    "pdf",
+    "video",
+    "Video Player",
+    "Doc Viewer"
+  ],
+  "license": "MIT",
+  "main": "index.js",
+  "name": "react-native-doc-viewer",
+  "peerDependencies": {
+    "react": "^16.3.0-alpha.1",
+    "react-native": "0.54.3",
+    "react-native-fs": "^2.3.2",
+    "react-native-doc-viewer": "2.7.8"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/philipphecht/react-native-doc-viewer.git"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "version": "2.7.8"
+}

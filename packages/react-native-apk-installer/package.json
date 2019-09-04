@@ -1,0 +1,32 @@
+{
+  "name": "react-native-apk-installer",
+  "version": "0.0.2",
+  "author": "null--",
+  "private": false,
+  "license": "GPL-3.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/null--/react-native-apk-installer.git"
+  },
+  "bugs": {
+    "url": "https://github.com/null--/react-native-apk-installer/issues"
+  },
+  "homepage": "https://github.com/null--/react-native-apk-installer",
+  "keywords": [
+    "react-native",
+    "android",
+    "library",
+    "apk",
+    "installer",
+    "react-native-apk-installer"
+  ],
+  "scripts": {
+    "start": "node node_modules/react-native/local-cli/cli.js start",
+    "test": "jest"
+  },
+  "peerDependencies": {
+    "react-native": ">=0.38.0"
+  },
+  "description": "Install an android APK from your react-native project. This project is based on `react-native-android-library-boilerplate` and `react-native-install-apk`",
+  "main": "index.android.js"
+}

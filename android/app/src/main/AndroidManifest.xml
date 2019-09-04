@@ -1,0 +1,132 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+          xmlns:tools="http://schemas.android.com/tools" package="com.instantmessage">
+
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
+    <uses-permission android:name="android.permission.READ_PHONE_STATE"/>
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+    <uses-permission android:name="android.permission.CAMERA"/>
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+    <uses-permission android:name="android.permission.USE_FINGERPRINT"/>
+    <uses-permission android:name="android.permission.CALL_PHONE"/>
+    <uses-feature android:name="android.hardware.camera" android:required="true"/>
+    <uses-feature android:name="android.hardware.camera.autofocus"/>
+    <!-- android 7+ 震动权限 -->
+    <uses-permission android:name="android.permission.VIBRATE"/>
+    <uses-permission android:name="android.permission.WAKE_LOCK"/>
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>
+    <!-- android 7+ 安装权限 -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>
+
+    <!--小米推送-->
+    <permission android:name="${PACKAGE_NAME}.permission.MIPUSH_RECEIVE" android:protectionLevel="signature"/>
+    <uses-permission android:name="${PACKAGE_NAME}.permission.MIPUSH_RECEIVE"/>
+    <!--小米推送END-->
+
+    <!--魅族推送-->
+    <!-- 兼容flyme5.0以下版本，魅族内部集成pushSDK必填，不然无法收到消息-->
+    <uses-permission android:name="com.meizu.flyme.push.permission.RECEIVE"></uses-permission>
+    <permission android:name="${PACKAGE_NAME}.push.permission.MESSAGE" android:protectionLevel="signature"/>
+    <uses-permission android:name="${PACKAGE_NAME}.push.permission.MESSAGE"></uses-permission>
+    <!--  兼容flyme3.0配置权限-->
+    <uses-permission android:name="com.meizu.c2dm.permission.RECEIVE"/>
+    <permission android:name="${PACKAGE_NAME}.permission.C2D_MESSAGE" android:protectionLevel="signature"></permission>
+    <uses-permission android:name="${PACKAGE_NAME}.permission.C2D_MESSAGE"/>
+    <!--魅族推送END-->
+
+    <application
+            android:name=".MainApplication"
+            android:label="@string/app_name"
+            android:icon="@mipmap/ic_launcher"
+            android:theme="@style/AppTheme">
+        <activity
+                android:name=".MainActivity"
+                android:label="@string/app_name"
+                android:configChanges="keyboard|keyboardHidden|orientation|screenSize"
+                android:windowSoftInputMode="adjustResize"
+                android:launchMode="singleTask"
+                android:screenOrientation="portrait"
+                android:taskAffinity="com.instantmessage">
+
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity>
+        <activity android:name="com.facebook.react.devsupport.DevSettingsActivity"/>
+
+        <meta-data android:name="com.huawei.hms.client.appid" android:value="100393617"/>
+        <provider android:name="com.huawei.hms.update.provider.UpdateProvider"
+                  android:authorities="${PACKAGE_NAME}.hms.update.provider"
+                  android:exported="false"
+                  android:grantUriPermissions="true">
+        </provider>
+
+        <!-- xinge -->
+        <!--&lt;!&ndash; 【必须】 信鸽receiver广播接收 &ndash;&gt;
+        <receiver android:name="com.jeepeng.react.xgpush.receiver.MessageReceiver"
+                  android:exported="true" >
+            <intent-filter>
+                &lt;!&ndash; 接收消息透传 &ndash;&gt;
+                <action android:name="com.tencent.android.tpush.action.PUSH_MESSAGE" />
+                &lt;!&ndash; 监听注册、反注册、设置/删除标签、通知被点击等处理结果 &ndash;&gt;
+                <action android:name="com.tencent.android.tpush.action.FEEDBACK" />
+            </intent-filter>
+        </receiver>
+        <receiver
+                android:name="com.tencent.android.tpush.XGPushReceiver"
+                android:process=":xg_service_v3">
+            <intent-filter android:priority="0x7fffffff">
+                &lt;!&ndash; 【必须】 信鸽SDK的内部广播 &ndash;&gt;
+                <action android:name="com.tencent.android.tpush.action.SDK" />
+                <action android:name="com.tencent.android.tpush.action.INTERNAL_PUSH_MESSAGE" />
+                &lt;!&ndash; 【必须】 系统广播：开屏和网络切换 &ndash;&gt;
+                <action android:name="android.intent.action.USER_PRESENT" />
+                <action android:name="android.net.conn.CONNECTIVITY_CHANGE" />
+                &lt;!&ndash; 【可选】 一些常用的系统广播，增强信鸽service的复活机会，请根据需要选择。当然，你也可以添加APP自定义的一些广播让启动service &ndash;&gt;
+                <action android:name="android.bluetooth.adapter.action.STATE_CHANGED" />
+                <action android:name="android.intent.action.ACTION_POWER_CONNECTED" />
+                <action android:name="android.intent.action.ACTION_POWER_DISCONNECTED" />
+            </intent-filter>
+        </receiver>
+        &lt;!&ndash; 【必须】 信鸽service &ndash;&gt;
+        <service
+                android:name="com.tencent.android.tpush.service.XGPushServiceV3"
+                android:exported="true"
+                android:persistent="true"
+                android:process=":xg_service_v3" />
+
+
+        &lt;!&ndash; 【必须】 提高service的存活率 &ndash;&gt;
+        <service
+                android:name="com.tencent.android.tpush.rpc.XGRemoteService"
+                android:exported="true">
+            <intent-filter>
+                &lt;!&ndash; 【必须】 请修改为当前APP包名 .PUSH_ACTION, 如demo的包名为：com.qq.xgdemo &ndash;&gt;
+                <action android:name="com.instantmessage.PUSH_ACTION" />
+            </intent-filter>
+        </service>
+
+
+        &lt;!&ndash; 【必须】 【注意】authorities修改为 包名.AUTH_XGPUSH, 如demo的包名为：com.qq.xgdemo&ndash;&gt;
+        <provider
+                android:name="com.tencent.android.tpush.XGPushProvider"
+                android:authorities="com.instantmessage.AUTH_XGPUSH"
+                android:exported="true" />
+
+        &lt;!&ndash; 【必须】 【注意】authorities修改为 包名.TPUSH_PROVIDER, 如demo的包名为：com.qq.xgdemo&ndash;&gt;
+        <provider
+                android:name="com.tencent.android.tpush.SettingsContentProvider"
+                android:authorities="com.instantmessage.TPUSH_PROVIDER"
+                android:exported="false" />
+
+        &lt;!&ndash; 【必须】 【注意】authorities修改为 包名.TENCENT.MID.V3, 如demo的包名为：com.qq.xgdemo&ndash;&gt;
+        <provider
+                android:name="com.tencent.mid.api.MidProvider"
+                android:authorities="com.instantmessage.TENCENT.MID.V3"
+                android:exported="true" />-->
+				<uses-library android:name="org.apache.http.legacy" android:required="false"/>
+    </application>
+</manifest>

@@ -1,4 +1,4 @@
-import React, {Component} from 'react';
+import React, {Component, PureComponent} from 'react';
 import {
 	StyleSheet,
 	Text,
@@ -30,6 +30,12 @@ import BottomMenu from '../../component/common/BottomMenu';
 import Icons from 'react-native-vector-icons/Ionicons';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import SimpleLineIcons from 'react-native-vector-icons/SimpleLineIcons';
+import IMUI from 'aurora-imui-react-native';
+
+let InputView = IMUI.ChatInput;
+let MessageListView = IMUI.MessageList;
+const AuroraIController = IMUI.AuroraIMUIController;
+
 import BottomPanel from './BottomPanel';
 import FormatDate from '../../util/FormatDate';
 import DeviceInfo from 'react-native-device-info';
@@ -127,9 +133,20 @@ let recordStatus = false;
 let flagAni = 0;//是否循环动画
 let tempTime = 0;//时间小灰条
 let nowPageFlag = 0;//标记当前页
-export default class Chat extends Component {
+export default class Chat extends PureComponent {
 	constructor(props) {
 		super(props);
+
+		/**
+		 *  imui
+		 */
+		let initHeight;
+		if (Platform.OS === "ios") {
+			initHeight = 46
+		} else {
+			initHeight = 100
+		}
+
 		this.state = {
 			scrollFlag: true,//滚动标记
 			fileAnimating: false,//文件预览动画
@@ -244,7 +261,17 @@ export default class Chat extends Component {
 			isRefresh: true,
 			choosedItem: {},//被长按对象
 			showAlert: false,//alert框
-			tipMsg: ''//alert提示信息
+			tipMsg: '',//alert提示信息
+
+			/**
+			 *  imui
+			 */
+			inputLayoutHeight: initHeight,
+			messageListLayout: {flex: 1, width: window.width, margin: 0},
+			inputViewLayout: {width: window.width, height: initHeight,},
+			isAllowPullToRefresh: true,
+			navigationBar: {},
+
 		};
 		this.nowLen = '';
 		this.renderFlag = true;
@@ -253,11 +280,29 @@ export default class Chat extends Component {
 		this.timeNum = 0;
 		this.pageNumFlag = true;
 		this.flagPageNum = 0;
+
+		/**
+		 *  imui
+		 */
+		this.updateLayout = this.updateLayout.bind(this);
+		this.onMsgClick = this.onMsgClick.bind(this);
+		this.messageListDidLoadEvent = this.messageListDidLoadEvent.bind(this);
 	}
 
 	componentDidMount() {
 
-		this.fetchData();
+		/**
+		 * Android only imui
+		 * Must set menu height once, the height should be equals with the soft keyboard height so that the widget won't flash.
+		 * 在别的界面计算一次软键盘的高度，然后初始化一次菜单栏高度，如果用户唤起了软键盘，则之后会自动计算高度。
+		 */
+		if (Platform.OS === "android") {
+			this.refs["ChatInput"].setMenuContainerHeight(316)
+		}
+		this.resetMenu();
+		AuroraIController.addMessageListDidLoadListener(this.messageListDidLoadEvent);
+
+
 		// download progress
 		DeviceEventEmitter.addListener(
 			'RNDownloaderProgress',
@@ -400,23 +445,23 @@ export default class Chat extends Component {
 			Sqlite.saveOfflineTime(this.state.basic.userId, this.state.room.roomJid, null);
 		}
 
-		if (this.keyboardDidShowListener) {
+		/*if (this.keyboardDidShowListener) {
 			this.keyboardDidShowListener.remove();
-		}
-		this.keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', () => {
+		}*/
+		/*this.keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', () => {
 			// this.renderFlag = false;
 			this.setState({
 				panelMark: false,
 				emojiMark: false,
 			}, () => {
-				this._scrollView.recordInteraction();
+				//this._scrollView.recordInteraction();
 				if (this.state.data.length >= Path.pageSizeNew) {
 					// this._scrollView.scrollToIndex({animated:true,index:this.state.data.length-1,viewPosition: 0})
-					this._scrollView.scrollToEnd({animated: false})
+					//this._scrollView.scrollToEnd({animated: false})
 				}
 				//this._scrollView.scrollToEnd();
 			});
-		});
+		});*/
 
 		this.changeAtMemberShow = DeviceEventEmitter.addListener('changeAtMember', (param) => {
 			this.setState({
@@ -827,7 +872,264 @@ export default class Chat extends Component {
 		this.recordInitedListener.remove();
 		this.recordFinishedListener.remove();
 		this.changeAtMemberShow.remove();
+
+		/**
+		 *  imui
+		 */
+		AuroraIController.removeMessageListDidLoadListener(this.messageListDidLoadEvent);
 	}
+
+	/**
+	 *  imui
+	 */
+	messageListDidLoadEvent = () => {
+		this.fetchData();
+	};
+	/**
+	 *  imui
+	 */
+	resetMenu = () => {
+		if (Platform.OS === "android") {
+			this.refs["ChatInput"].showMenu(false);
+			this.setState({
+				messageListLayout: {flex: 1, width: window.width, margin: 0},
+				navigationBar: {height: 64, justifyContent: 'center'},
+			});
+			this.forceUpdate();
+		} else {
+			AuroraIController.hidenFeatureView(true);
+		}
+	};
+	/**
+	 * Android need this event to invoke onSizeChanged
+	 */
+	onTouchEditText = () => {
+		this.refs["ChatInput"].showMenu(false)
+	};
+
+	onFullScreen = () => {
+		console.log("on full screen");
+		this.setState({
+			messageListLayout: {flex: 0, width: 0, height: 0},
+			inputViewLayout: {flex: 1, width: window.width, height: window.height},
+			navigationBar: {height: 0}
+		})
+	};
+
+	onRecoverScreen = () => {
+		// this.setState({
+		//   inputLayoutHeight: 100,
+		//   messageListLayout: { flex: 1, width: window.width, margin: 0 },
+		//   inputViewLayout: { flex: 0, width: window.width, height: 100 },
+		//   navigationBar: { height: 64, justifyContent: 'center' }
+		// })
+	};
+
+	onInputViewSizeChange = (size) => {
+		console.log("onInputViewSizeChange height: " + size.height + " width: " + size.width)
+		if (this.state.inputLayoutHeight != size.height) {
+			this.setState({
+				inputLayoutHeight: size.height,
+				inputViewLayout: {width: window.width, height: size.height},
+				messageListLayout: {flex: 1, width: window.width, margin: 0}
+			})
+		}
+	};
+	onAvatarClick = (message) => {
+		AuroraIController.removeMessage(message.msgId)
+		Alert.alert('消息撤回', message);
+	}
+
+	onMsgClick(message) {
+		console.log(message)
+		Alert.alert("message", JSON.stringify(message))
+	}
+
+	onMsgLongClick = (message) => {
+		Alert.alert('message bubble on long press', 'message bubble on long press')
+	}
+
+	onStatusViewClick = (message) => {
+		message.status = 'send_succeed'
+		AuroraIController.updateMessage(message)
+	}
+
+	onBeginDragMessageList = () => {
+		this.resetMenu()
+		AuroraIController.hidenFeatureView(true)
+	}
+
+	onTouchMsgList = () => {
+		AuroraIController.hidenFeatureView(true)
+	};
+
+	onPullToRefresh = () => {
+		console.log("on pull to refresh");
+		/*let messages = [];
+		for (let i = 0; i < 14; i++) {
+			let message = this.constructorXMPPMessage();
+			// if (index%2 == 0) {
+			message.msgType = "text";
+			message.text = "" + i;
+			// }
+
+			if (i % 3 == 0) {
+				message.msgType = "video";
+				message.text = "" + i;
+				message.mediaPath = "/storage/emulated/0/ScreenRecorder/screenrecorder.20180323101705.mp4"
+				message.duration = 12
+			}
+			messages.push(message)
+		}
+		AuroraIController.insertMessagesToTop(messages)
+		if (Platform.OS === 'android') {
+			this.refs["MessageList"].refreshComplete()
+		}*/
+
+		this._onRefresh();
+
+	}
+
+	onSendText = (text) => {
+		// let message = this.constructorXMPPMessage(true);
+		// let evenmessage = this.constructorXMPPMessage(true);
+		//
+		// message.msgType = 'text';
+		// message.text = text;
+		//
+		// AuroraIController.appendMessages([message]);
+
+		this._setText(text);
+		this._sendText();
+	};
+
+	onTakePicture = (media) => {
+		console.log("media " + JSON.stringify(media));
+		let message = this.constructorXMPPMessage(true);
+		message.msgType = 'image';
+		message.mediaPath = media.mediaPath;
+		AuroraIController.appendMessages([message]);
+		this.resetMenu();
+		AuroraIController.scrollToBottom(true)
+	};
+
+	onStartRecordVoice = (e) => {
+		console.log("on start record voice")
+	}
+
+	onFinishRecordVoice = (mediaPath, duration) => {
+		let message = this.constructorXMPPMessage(true);
+		message.msgType = "voice";
+		message.mediaPath = mediaPath;
+		message.duration = duration;
+		AuroraIController.appendMessages([message]);
+		console.log("on finish record voice");
+	};
+
+	onCancelRecordVoice = () => {
+		console.log("on cancel record voice");
+	};
+
+	onStartRecordVideo = () => {
+		console.log("on start record video");
+	};
+
+	onFinishRecordVideo = (video) => {
+		// let message = this.constructorXMPPMessage();
+
+		// message.msgType = "video"
+		// message.mediaPath = video.mediaPath
+		// message.duration = video.duration
+		// AuroraIController.appendMessages([message])
+	}
+
+	onSendGalleryFiles = (mediaFiles) => {
+		/**
+		 * WARN: This callback will return original image,
+		 * if insert it directly will high memory usage and blocking UI。
+		 * You should crop the picture before insert to messageList。
+		 *
+		 * WARN: 这里返回的是原图，直接插入大会话列表会很大且耗内存.
+		 * 应该做裁剪操作后再插入到 messageListView 中，
+		 * 一般的 IM SDK 会提供裁剪操作，或者开发者手动进行裁剪。
+		 *
+		 * 代码用例不做裁剪操作。
+		 */
+		Alert.alert('fas', JSON.stringify(mediaFiles));
+		for (let index in mediaFiles) {
+			let message = this.constructorXMPPMessage(true);
+			if (mediaFiles[index].mediaType == "image") {
+				message.msgType = "image";
+			} else {
+				message.msgType = "video";
+				message.duration = mediaFiles[index].duration;
+			}
+
+			message.mediaPath = mediaFiles[index].mediaPath;
+			// message.status = "send_going";
+			AuroraIController.appendMessages([message]);
+			AuroraIController.scrollToBottom(true)
+		}
+
+		this.resetMenu()
+	};
+
+	onSwitchToMicrophoneMode = () => {
+		AuroraIController.scrollToBottom(true)
+	};
+
+	onSwitchToEmojiMode = () => {
+		AuroraIController.scrollToBottom(true)
+	};
+	onSwitchToGalleryMode = () => {
+		AuroraIController.scrollToBottom(true)
+	};
+
+	onSwitchToCameraMode = () => {
+		AuroraIController.scrollToBottom(true)
+	};
+
+	onShowKeyboard = (keyboard_height) => {
+	};
+
+	updateLayout(layout) {
+		this.setState({inputViewLayout: layout})
+	};
+
+	onInitPress() {
+		console.log('on click init push ');
+		this.updateAction();
+	};
+
+	onClickSelectAlbum = () => {
+		console.log("on click select album")
+	};
+
+	onCloseCamera = () => {
+		console.log("On close camera event")
+		this.setState({
+			inputLayoutHeight: 100,
+			messageListLayout: {flex: 1, width: window.width, margin: 0},
+			inputViewLayout: {flex: 0, width: window.width, height: 100},
+			navigationBar: {height: 64, justifyContent: 'center'}
+		})
+	};
+
+	/**
+	 * Switch to record video mode or not
+	 */
+	switchCameraMode = (isRecordVideoMode) => {
+		console.log("Switching camera mode: isRecordVideoMode: " + isRecordVideoMode)
+		// If record video mode, then set to full screen.
+		if (isRecordVideoMode) {
+			this.setState({
+				messageListLayout: {flex: 0, width: 0, height: 0},
+				inputViewLayout: {flex: 1, width: window.width, height: window.height},
+				navigationBar: {height: 0}
+			})
+		}
+	};
+	// imui方法end------------------------------------------------------------------------------------------
 
 	fetchgetMemberNumber() {
 		if (this.state.backPage == 'Group') {
@@ -848,7 +1150,8 @@ export default class Chat extends Component {
 				+ '&uuId=' + uuid + '&ticket=' + this.state.ticket + '&userId=' + this.state.basic.userId + "&version=1";
 
 			FetchUtil.netUtil(url, {}, 'GET', this.props.navigation, '', (responseJson) => {
-
+				console.log('response:');
+				console.log(responseJson);
 				if (responseJson == 'tip') {
 					this.refs.toast.show('网络错误，获取聊天记录失败');
 				} else if (responseJson.code.toString() == '200') {
@@ -874,15 +1177,30 @@ export default class Chat extends Component {
 					messagesBody = this.state.nowPageNum == 1 ? tempMsgBodyArr : tempMsgBodyArr.concat(this.state.data);
 					let imgArr = [];
 					let i = 0;
+					messagesBody = messagesBody.filter(obj => !obj.time);
 					messagesBody.map((item, index) => {
 						let body = item.body && (typeof item.body == "string") ? JSON.parse(item.body) : item.body;
+
+						//像视图添加消息
+						let isSelfMsg = this.state.basic.jidNode == body.basic.userId ? true : false;
+						let imui_message = this.constructorXMPPMessage(isSelfMsg);
+
 						if (body && body.type && body.type.toString() == '2' && body.content.file && body.content.file.length > 0 && body.content.file[0].listFileInfo[0].showPic == 'img') {
 							imgArr.push({
 								url: Path.headImgNew + '?uuId=' + this.state.uuid + '&ticket=' + this.state.ticket + '&userId=' + this.state.basic.userId + '&imageName=' + body.content.file[0].listFileInfo[0].fileName + '&imageId=' + body.content.file[0].listFileInfo[0].id + '&sourceType=chatImage&jidNode=' + '' + '&platform=' + Platform.OS
 							});
 							keyCode[body.content.file[0].listFileInfo[0].id] = i;
 							i++;
+							imui_message.msgType = 'image';
+						}else{
+							if(body && body.type == '0'){
+								imui_message.text = `${body.content.text}`;
+							}
 						}
+
+						imui_message.status = 'send_succeed';
+						AuroraIController.appendMessages([imui_message]);
+
 					});
 					this.setState({
 						data: messagesBody,
@@ -894,6 +1212,11 @@ export default class Chat extends Component {
 						isNewMsg: responseJson.data.currentPage == 1 ? true : false,
 						msgImgList: imgArr,
 						memberNumber: responseJson.data.currentPage == 1 ? responseJson.data.members : this.state.memberNumber
+					},()=>{
+						if (Platform.OS === 'android') {
+							this.refs["MessageList"].refreshComplete()
+						}
+						AuroraIController.scrollToBottom(true); //视图滚动到底部
 					});
 				}
 
@@ -1142,6 +1465,29 @@ export default class Chat extends Component {
 			})
 		}
 	};
+
+	constructorXMPPMessage = (isOutgoing) => {
+		let date = new Date();
+		let m = date.getMinutes();
+		if (m < 10) {
+			m = "0" + m;
+		}
+		let message = {
+			msgId: UUIDUtil.getUUID().replace(/\-/g, ''), //消息id
+			msgType: 'text', //消息类型
+			status: 'send_going', //消息状态 "send_succeed", "send_failed", "send_going", "download_failed" 默认值是 "send_succeed"
+			isOutgoing: isOutgoing, //是否为自己发送的消息
+			timeString: date.getHours() + ":" + m, //消息发送时间
+			text:'默认文本内容', //消息内容
+			fromUser: {
+				userId: this.state.basic.jidNode,
+				displayName: this.state.basic.trueName,
+				avatarPath: "ironman"
+			}
+		};
+		return message
+	};
+
 	/**
 	 * 发送文本消息
 	 * @returns {boolean}
@@ -1153,6 +1499,8 @@ export default class Chat extends Component {
 			let enterArr = this.state.text.split('\n');
 			let spaceNum = spaceArr.length - 1;
 			let enterNum = enterArr.length - 1;
+
+			let imui_message = this.constructorXMPPMessage(true); //构造发送message对象
 
 			if (!((spaceNum + enterNum) == this.state.text.length)) {
 				let jidArr = [];
@@ -1332,6 +1680,11 @@ export default class Chat extends Component {
 							// XMPP.message(JSON.stringify(this.state.messageBody), this.state.friendDetail.jid);
 							let sendSigleMsg = XmlUtil.sendGroup('chat', this.state.friendDetail.jid, JSON.stringify(this.state.messageBody), newMsgSingleId);
 							XMPP.sendStanza(sendSigleMsg);
+
+							imui_message.text = `${item.content.text}`;
+							AuroraIController.appendMessages([imui_message]); //向视图添加消息
+							AuroraIController.scrollToBottom(true); //将视图滚动到底
+
 							tempItemObj.body = JSON.stringify(this.state.messageBody);
 							tempItemObj.sendType = 'to';
 							let tempArr = [];
@@ -1349,6 +1702,9 @@ export default class Chat extends Component {
 					this.setState({
 						text: '',
 						enterType: 'done'
+					},()=>{
+						// imui_message.status = 'send_succeed';
+						// AuroraIMUIController.updateMessage(imui_message); //更新消息发送状态
 					});
 					this.nowLen = '';
 				});
@@ -1385,7 +1741,7 @@ export default class Chat extends Component {
 			/** 私聊撤回消息处理 **/
 			this._privateWithdrawMessage(message);
 		}
-		this._scrollView.scrollToEnd({animated: true})//滚动到底部
+		// this._scrollView.scrollToEnd({animated: true})//滚动到底部
 	};
 	/**
 	 * 私聊页面渲染数组数据封装
@@ -1425,20 +1781,33 @@ export default class Chat extends Component {
 				let imgArr = [];
 				let i = 0;
 				this.state.data.map((item, index) => {
+					//像视图添加消息
+					let isSelfMsg = item.body.basic.fromId == this.state.basic.jidNode ? true : false;
+					let imui_message = this.constructorXMPPMessage(isSelfMsg);
+
 					if (!item.time && item.body && item.body.content.file && item.body.content.file.length > 0 && item.body.content.file[0].listFileInfo[0].showPic == 'img' && item.body.type.toString() == '2') {
 						imgArr.push({
 							url: Path.headImgNew + '?uuId=' + this.state.uuid + '&ticket=' + this.state.ticket + '&userId=' + this.state.basic.userId + '&imageName=' + item.body.content.file[0].listFileInfo[0].fileName + '&imageId=' + item.body.content.file[0].listFileInfo[0].id + '&sourceType=chatImage&jidNode=' + '' + '&platform=' + Platform.OS
 						});
 						keyCode[item.body.content.file[0].listFileInfo[0].id] = i;
 						i++;
+
+						imui_message.msgType = 'image';
+					}else{
+						imui_message.text = item.body.content.text;
 					}
+
+					imui_message.status = 'send_succeed';
+					AuroraIController.appendMessages([imui_message]);
+
 				});
 				this.setState({
 					msgImgList: []
 				}, () => {
 					this.setState({
 						msgImgList: imgArr//.concat(this.state.msgImgList)
-					})
+					});
+					AuroraIController.scrollToBottom(true); //视图滚动到底部
 				})
 			});
 		}
@@ -1548,6 +1917,18 @@ export default class Chat extends Component {
 	_groupGeneralMessage_General = (message, messageBody) => {
 		//文本消息||其他人发的消息||PC发的消息
 		if ((messageBody.type + "" && messageBody.type + "" == '0') || messageBody.basic.userId != this.state.basic.jidNode || !this.state.isNotPC) {
+			//像视图添加消息
+			let isSelfMsg = this.state.basic.jidNode == messageBody.basic.userId ? true : false;
+			let imui_message = this.constructorXMPPMessage(isSelfMsg);
+			imui_message.status = 'send_succeed';
+			console.log('messageBody');
+			console.log(messageBody);
+			if(messageBody.type == '0'){
+				imui_message.text = messageBody.content.text;
+			}
+			imui_message.timeString = FormatDate.formatTimeStmpToFullTime(messageBody.basic.sendTime);
+			AuroraIController.appendMessages([imui_message]);
+
 			let tempArr = [];
 			tempArr.push(message);
 			let tempRoom = JSON.parse(JSON.stringify(this.state.room));
@@ -1568,9 +1949,10 @@ export default class Chat extends Component {
 					if (!item.time && item.body && item.body.content.file && item.body.content.file.length > 0 && item.body.content.file[0].listFileInfo[0].showPic == 'img' && item.body.type.toString() == '2') {
 						imgArr.push({
 							url: Path.headImgNew + '?uuId=' + this.state.uuid + '&ticket=' + this.state.ticket + '&userId=' + this.state.basic.userId + '&imageName=' + item.body.content.file[0].listFileInfo[0].fileName + '&imageId=' + item.body.content.file[0].listFileInfo[0].id + '&sourceType=chatImage&jidNode=' + '' + '&platform=' + Platform.OS
-						})
+						});
 						keyCode[item.body.content.file[0].listFileInfo[0].id] = i;
 						i++;
+
 					}
 				});
 				this.setState({
@@ -1578,7 +1960,9 @@ export default class Chat extends Component {
 				}, () => {
 					this.setState({
 						msgImgList: imgArr//.concat(this.state.msgImgList)
-					})
+					});
+
+					AuroraIController.scrollToBottom(true); //视图滚动到底部
 				})
 			});
 			Sqlite.saveOfflineTime(this.state.basic.userId, this.state.room.roomJid, message.st);
@@ -4817,7 +5201,68 @@ export default class Chat extends Component {
 					title={this.state.backPage == 'Group' ? this.state.room.roomName : this.state.friendDetail.trueName}
 					number={this.state.backPage == 'Group' ? (this.state.memberNumber > 99 ? '99+' : this.state.memberNumber) : null}
 				/>
-				<FlatList
+
+				{/* imui 部分 start */}
+				<MessageListView style={this.state.messageListLayout}
+								 ref="MessageList"
+								 isAllowPullToRefresh={true}
+								 isShowDisplayName={true}
+								 onAvatarClick={this.onAvatarClick}
+								 onMsgClick={this.onMsgClick}
+								 onStatusViewClick={this.onStatusViewClick}
+								 onTouchMsgList={this.onTouchMsgList}
+								 onTapMessageCell={this.onTapMessageCell}
+								 onBeginDragMessageList={this.onBeginDragMessageList}
+								 onPullToRefresh={this.onPullToRefresh}
+								 avatarSize={{width: 40, height: 40}}
+								 avatarCornerRadius={40}
+								 messageListBackgroundColor={"#f9f9f9"}
+								 sendBubbleTextSize={15}
+								 sendBubbleTextColor={"#333333"}
+								 sendBubblePadding={{left: 10, top: 10, right: 15, bottom: 10}}
+								 datePadding={{left: 5, top: 3, right: 5, bottom: 3}}
+								 dateBackgroundColor={"#dfe4ea"}
+								 photoMessageRadius={5}
+								 maxBubbleWidth={0.7}
+								 videoDurationTextColor={"#ffffff"}
+				/>
+				<InputView style={this.state.inputViewLayout}
+						   ref="ChatInput"
+						   onSendText={this.onSendText}
+						   onTakePicture={this.onTakePicture}
+						   onStartRecordVoice={this.onStartRecordVoice}
+						   onFinishRecordVoice={this.onFinishRecordVoice}
+						   onCancelRecordVoice={this.onCancelRecordVoice}
+						   onStartRecordVideo={this.onStartRecordVideo}
+						   onFinishRecordVideo={this.onFinishRecordVideo}
+						   onSendGalleryFiles={this.onSendGalleryFiles}
+						   onSwitchToEmojiMode={this.onSwitchToEmojiMode}
+						   onSwitchToMicrophoneMode={this.onSwitchToMicrophoneMode}
+						   onSwitchToGalleryMode={this.onSwitchToGalleryMode}
+						   onSwitchToCameraMode={this.onSwitchToCameraMode}
+						   onShowKeyboard={this.onShowKeyboard}
+						   onTouchEditText={this.onTouchEditText}
+						   onFullScreen={this.onFullScreen}
+						   onRecoverScreen={this.onRecoverScreen}
+						   onSizeChange={this.onInputViewSizeChange}
+						   closeCamera={this.onCloseCamera}
+						   switchCameraMode={this.switchCameraMode}
+						   showSelectAlbumBtn={true}
+						   showRecordVideoBtn={false}
+						   onClickSelectAlbum={this.onClickSelectAlbum}
+						   inputPadding={{left: 30, top: 10, right: 10, bottom: 10}}
+						   galleryScale={0.6}//default = 0.5
+						   compressionQuality={0.6}
+						   cameraQuality={0.7}//default = 0.5
+						   customLayoutItems={{
+							   left: [],
+							   right: ['send'],
+							   bottom: ['voice', 'gallery', 'emoji', 'camera']
+						   }}
+				/>
+				{/* imui 部分 end */}
+
+				{/*<FlatList
 					style={{backgroundColor: '#F9F9F9'}}
 					ref={(flatList) => {
 						this._scrollView = flatList;
@@ -4864,7 +5309,7 @@ export default class Chat extends Component {
 					onScrollBeginDrag={() => {
 						this.popObj()
 					}}
-				/>
+				/>*/}
 				{
 					this.state.isAudioBoxShow ? <View style={styles.audioStartBox}>
 						<Image
@@ -4878,183 +5323,6 @@ export default class Chat extends Component {
 						</ImageBackground>
 					</View> : null
 				}
-				<View style={{
-					flexDirection: 'row',
-					justifyContent: 'center',
-					alignItems: 'flex-end',
-					paddingTop: 10,
-					marginBottom: this.state.panelMark ? 0 : (Platform.OS == 'ios' && DeviceInfo.getModel() == 'iPhone X' ? 34 : 0),
-					minHeight: 50,
-					maxHeight: 120,
-					backgroundColor: '#F3F3F3',
-					paddingLeft: 8,
-					paddingRight: 8,
-					paddingBottom: 10
-				}}>
-					<View style={{width: 30, justifyContent: 'center', alignItems: 'center'}}>
-						{this.state.room != '' && this.state.room.mute == '1' ? (
-							<Image source={require('../../images/icon_voice_dis.png')}
-								   style={{width: 30, height: 30}}/>
-						) : (
-							<TouchableOpacity onPress={() => {
-								this.setState({
-									panelMark: false,
-									emojiMark: false
-								}, () => {
-									if (this.state.msgType == 'text') {
-										this.textInputBox.onBlurText();
-										this.setState({msgType: 'sound'});
-									} else {
-										this.setState({msgType: 'text'}, () => {
-											this.textInputBox.onFocusText();
-										});
-									}
-								})
-							}}>
-								{
-									this.state.msgType == 'text' ? (
-										<Image source={require('../../images/icon_voice.png')}
-											   style={{width: 30, height: 30}}/>) : (
-										<Image source={require('../../images/icon_key.png')}
-											   style={{width: 30, height: 30}}/>)
-								}
-							</TouchableOpacity>
-						)}
-					</View>
-					{
-						this.state.msgType == 'text' ?
-							(
-								<View style={{
-									flex: 1,
-									flexDirection: 'row',
-									justifyContent: 'center',
-									alignItems: 'center'
-								}}>
-									{this.state.room != '' && this.state.room.mute == '1' ? (
-										<View style={{
-											backgroundColor: '#fff',
-											flex: 1,
-											height: 30,
-											marginLeft: 8,
-											justifyContent: 'center',
-											alignItems: 'center'
-										}}>
-											<Text style={{color: 'rgba(0,0,0,0.4)'}}>{'禁言中，请联系管理员'}</Text>
-										</View>
-									) : (
-										<CustomTextInput
-											textInputStyle={{
-												flex: 1,
-												marginLeft: 8,
-												paddingTop: Platform.OS == 'ios' ? 6 : 0,
-												paddingBottom: Platform.OS == 'ios' ? 6 : 0,
-												minHeight: 30,
-												backgroundColor: '#fff',
-											}}
-											ref={(textInputBox) => {
-												this.textInputBox = textInputBox;
-											}}
-											multilineFlag={true}
-											editable={true}
-											placeholder={''}
-											secure={false}
-											underlineColor={'transparent'}
-											onChangeCallBack={(text) => this._setText(text)}
-											value={this.state.text}
-											//onKeyPress={(event) => this._setText(event.nativeEvent.key)}
-											onSelectionChangeCallBack={(event) => this._getSelection(event)}
-											/*returnType={'send'}
-											returnLabel={'发送'}
-											submitText={this._sendText}*/
-										/>
-									)}
-								</View>
-							) :
-							(<CustomBtn
-									//onBtnPressCallback={this._sendSound}
-									// onPressOut={this.state.canAudio ? this._sendSound : null}
-									onPressOut={this._sendSound}
-									onLongPress={this.recardVoiceMessage}
-									btnText={'按住说话'}
-									btnStyle={{
-										flex: 1,
-										borderRadius: 4,
-										backgroundColor: 'rgba(76,122,238,1)',
-										height: 30,
-										justifyContent: 'center',
-										alignItems: 'center',
-										marginRight: 8,
-										marginLeft: 8,
-									}}
-								/>
-							)
-					}
-					<View style={{width: 45, justifyContent: 'center', alignItems: 'center'}}>
-						{this.state.room != '' && this.state.room.mute == '1' ? (
-							<Image source={require('../../images/icon_face.png')} style={{width: 30, height: 30}}/>
-						) : (
-							<TouchableOpacity onPress={() => {
-								this.setState({
-									emojiMark: !this.state.emojiMark,
-									panelMark: false,
-									msgType: 'text'
-								}, () => {
-									if (this.state.emojiMark) {
-										Keyboard.dismiss();
-									} else {
-										this.textInputBox.onFocusText();
-									}
-								});
-							}}>
-								{
-									this.state.emojiMark ?
-										(<Image source={require('../../images/icon_key.png')}
-												style={{width: 30, height: 30}}/>)
-										: (<Image source={require('../../images/icon_face.png')}
-												  style={{width: 30, height: 30}}/>)
-								}
-							</TouchableOpacity>
-						)}
-					</View>
-					<View style={{width: 45, justifyContent: 'center', alignItems: 'center'}}>
-						{this.state.room != '' && this.state.room.mute == '1' ? (
-							<Image source={require('../../images/icon_add.png')}
-								   style={{width: 30, height: 30}}/>
-						) : (
-							this.state.text == '' || this.state.msgType != 'text' ? (
-								<TouchableOpacity onPress={() => {
-									this.setState({
-										panelMark: !this.state.panelMark,
-										emojiMark: false,
-										msgType: 'text'
-									}, () => {
-									});
-								}}>
-									{
-										this.state.panelMark ?
-											(<Image source={require('../../images/icon_down.png')}
-													style={{width: 30, height: 30}}/>)
-											: (<Image source={require('../../images/icon_add.png')}
-													  style={{width: 30, height: 30}}/>)
-									}
-								</TouchableOpacity>
-							) : (
-								<CustomBtn
-									onBtnPressCallback={this._sendText}
-									btnText={'发送'}
-									btnStyle={{
-										width: 45,
-										borderRadius: 4,
-										backgroundColor: 'rgba(76,122,238,1)',
-										height: 30,
-										justifyContent: 'center',
-										alignItems: 'center',
-									}}
-								/>
-							)
-						)}
-					</View>
-				</View>
 				<this.renderOptionPanel/>
 				<this.renderEmojiPanel/>
 				{
@@ -5095,7 +5363,7 @@ export default class Chat extends Component {
 		if (this.state.panelMark) {
 			// this._scrollView.scrollToIndex({animated:true,index:this.state.data.length-1,viewPosition: 0});
 			return (
-				<View
+				<Vieww
 					style={{marginBottom: Platform.OS == 'ios' ? (DeviceInfo.getModel() == 'iPhone X' ? 34 : 0) : 0}}><BottomPanel
 					style={{height: 300}} imageDidClick={this.uploadImages}
 					cameraDidClick={() => {
@@ -5105,7 +5373,7 @@ export default class Chat extends Component {
 							this.cameraUploadImage();
 						}
 					}}
-					fileDidClick={this.uploadFiles}/></View>
+					fileDidClick={this.uploadFiles}/></Vieww>
 			)
 		} else {
 			return null;

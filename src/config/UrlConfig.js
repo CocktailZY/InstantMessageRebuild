@@ -1,13 +1,13 @@
-const changeBtn = true;
+const changeBtn = false;
 
 // const baseUrl = 'http://219.232.203.15:8081/mobile-im';//北京环境
-const baseUrl = 'http://218.205.203.83:8081/mobile-im';//北京环境
+// const baseUrl = 'http://218.205.203.83:8081/mobile-im';//北京环境
 // const baseUrl = 'http://10.0.103.119:8081/mobile-im';//北京环境
 // const baseUrl = 'http://weixin.sxzkzy.com:8888/mobile-im';//222测试服务路径
 // const baseUrl = 'http://121.30.232.162:8888/mobile-im';//222测试服务路径
 // const baseUrl = 'http://121.30.232.162:8889/mobile-im';//118测试服务路径
 // const baseUrl = 'http://192.168.80.118:8082/mobile-im';//118测试内网服务路径
-//   const baseUrl = 'https://web.sxzkzy.com:10443/mobile-im';//182开发服务外网https
+  const baseUrl = 'https://web.sxzkzy.com:10443/mobile-im';//182开发服务外网https
 //  const baseUrl = 'http://web.sxzkzy.com/mobile-im';//182开发服务外网http
 //  const baseUrl = 'http://121.30.232.162:10080/mobile-im';//182开发服务外网http
 // const baseUrl = 'http://192.168.80.182:8082/mobile-im';//182开发服务内网
@@ -30,6 +30,8 @@ const Path = {
 	viewFile: baseUrl + '/file/filePreview',//文件预览接口
 	previewAttachment: baseUrl + '/file/previewAttachment',//附件预览接口
 	network_ip: changeBtn ? '218.205.203.83' : '121.30.232.162',//检测网络时ping的ip地址
+
+	pcimoji: 'http://192.168.80.124:8080/webim/im1/', //pc表情地址
 	//-------------------------信鸽推送配置-------------------------
 	androidAccessId: '2100307775',
 	androidAccessKey: 'A2ZUYJJ9613F',

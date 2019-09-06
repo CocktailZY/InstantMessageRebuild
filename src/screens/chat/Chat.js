@@ -1003,19 +1003,23 @@ export default class Chat extends PureComponent {
 		this._sendText();
 	};
 
+	/**
+	 * 相机拍照回调
+	 * @param media 相片对象
+	 */
 	onTakePicture = (media) => {
-		console.log("media " + JSON.stringify(media));
 		let message = this.constructorXMPPMessage(true);
 		message.msgType = 'image';
 		message.mediaPath = media.mediaPath;
 		AuroraIController.appendMessages([message]);
 		this.resetMenu();
-		AuroraIController.scrollToBottom(true)
+		AuroraIController.scrollToBottom(true);
+		this.newUploadImage(media,message);
 	};
 
 	onStartRecordVoice = (e) => {
 		console.log("on start record voice")
-	}
+	};
 
 	onFinishRecordVoice = (mediaPath, duration) => {
 		let message = this.constructorXMPPMessage(true);
@@ -1024,6 +1028,7 @@ export default class Chat extends PureComponent {
 		message.duration = duration;
 		AuroraIController.appendMessages([message]);
 		console.log("on finish record voice");
+		this.upLoadVoiceFile(mediaPath,message)
 	};
 
 	onCancelRecordVoice = () => {
@@ -1044,6 +1049,7 @@ export default class Chat extends PureComponent {
 	}
 
 	onSendGalleryFiles = (mediaFiles) => {
+		console.log(mediaFiles);
 		/**
 		 * WARN: This callback will return original image,
 		 * if insert it directly will high memory usage and blocking UI。
@@ -1055,7 +1061,6 @@ export default class Chat extends PureComponent {
 		 *
 		 * 代码用例不做裁剪操作。
 		 */
-		Alert.alert('fas', JSON.stringify(mediaFiles));
 		for (let index in mediaFiles) {
 			let message = this.constructorXMPPMessage(true);
 			if (mediaFiles[index].mediaType == "image") {
@@ -1066,12 +1071,362 @@ export default class Chat extends PureComponent {
 			}
 
 			message.mediaPath = mediaFiles[index].mediaPath;
-			// message.status = "send_going";
 			AuroraIController.appendMessages([message]);
-			AuroraIController.scrollToBottom(true)
+			AuroraIController.scrollToBottom(true);
+
+			this.newUploadImage(mediaFiles[index],message);
 		}
 
-		this.resetMenu()
+		this.resetMenu();
+	};
+
+	/**
+	 *  附加图片上传
+	 */
+	newUploadImage = (mediaFile,message) => {
+		XmppUtil.xmppIsConnect(() => {
+			//选择图片后
+			let response = {
+				fileName: mediaFile.mediaPath.substr(mediaFile.mediaPath.lastIndexOf('/') + 1),
+				uri: `file://${mediaFile.mediaPath}`,
+			};
+			let imageType;
+			if (response.fileName && response.fileName.indexOf('HEIC') == -1) {
+				imageType = response.fileName.substr(response.fileName.lastIndexOf('.') + 1);
+			} else {
+				imageType = response.uri.substr(response.uri.lastIndexOf('.') + 1);
+			}
+			const trueType = ['jpg', 'JPG', 'jpeg', 'JPEG', 'png', 'PNG', 'gif', 'GIF'];
+			if (trueType.indexOf(imageType) > -1) {
+				//将本地图片拼接到聊天区域
+				let newMsgId = UUIDUtil.getUUID().replace(/\-/g, '') + 'GroupMsg';
+				let newMsgIdSigle = UUIDUtil.getUUID().replace(/\-/g, '');
+				let files = [{
+					status: 'success',
+					listFileInfo: [{
+						fileName: response.fileName && response.fileName.indexOf('HEIC') == -1 ? encodeURIComponent(response.fileName) : 'image.' + imageType,
+						showPic: 'img'
+					}]
+				}, {imageUrl: response.uri}];//本地图片路径
+				let tempmessageBody = this.state.backPage == 'Group' ? {
+					"id": newMsgId,
+					"type": 2,
+					"otherFlag": true,
+					"basic": {
+						"userId": this.state.basic.jidNode,
+						"userName": this.state.basic.trueName,
+						"head": '',
+						"sendTime": new Date().getTime(),
+						"groupId": this.state.room.roomJid,
+						"groupName": this.state.room.roomName,
+						"type": 'groupChat'
+					},
+
+					"content": {
+						"text": '',
+						"interceptText": '',
+						"file": files,
+					},
+					"atMembers": [],
+					"occupant": {
+						"state": '',
+						"effect": '',
+						"active": ''
+					}
+				} : {
+					"id": newMsgIdSigle,
+					"type": 2,
+					"otherFlag": true,
+					"basic": {
+						"toId": this.state.friendDetail.jidNode,
+						"type": "privateChat",
+						"fromId": this.state.basic.jidNode,
+						"userId": this.state.basic.userId,
+						"photoId": this.state.basic.photoId,
+						"userName": this.state.basic.trueName
+					},
+					"keyId": "privateSend00",
+					"content": {
+						"file": files,
+						"text": "",
+						"interceptText": '',
+						"sendTime": FormatDate.formatTimeStmpToFullTimeForSave(new Date().getTime()),
+						"imageFiles": []
+					},
+					"showTime": true
+				};
+				let tempItemObjNotTrue = {
+					body: JSON.stringify(tempmessageBody),
+					sendType: 'to',
+					position: this.state.data.length
+				};
+				let tempArr = [];
+				tempArr.push(tempItemObjNotTrue);
+				this.setState({
+					data: this.state.data.concat(tempArr),//拼接本地图片
+				}, () => {
+					//执行上传
+					//发送post上传请求
+					let formData = new FormData();
+					let file = {
+						uri: response.uri,
+						type: 'multipart/form-data',
+						name: response.fileName
+					};
+					formData.append("file", file);
+					let stype = this.state.backPage == 'Group' ? 'groupchat' : 'sglc';
+					let to = this.state.backPage == 'Group' ? this.state.room.roomJid : this.state.friendDetail.jidNode
+					let url = Path.uploadImage + '?uuId=' + uuid + '&ticket=' + this.state.ticket + '&stype=' + stype + '&to=' + to + '&jidNode=' + this.state.basic.jidNode + '&userId=' + this.state.basic.userId;
+					console.log(formData);
+					XmppUtil.xmppIsConnect(() => {
+						fetch(url, {
+							method: 'POST',
+							headers: {
+								'Content-Type': 'multipart/form-data',
+							},
+							body: formData,
+						}).then((response) => {
+							return response.json();
+						}).then((responseData) => {
+							console.log(url);
+							console.log(responseData);
+							if (responseData.code.toString() == '200') {
+
+								AuroraIController.updateMessage({...message, status: 'send_succeed'});
+
+								responseData.data.map((item, index) => {
+
+									let body = JSON.parse(item);
+
+									if (body.code + '' == '200') {
+
+										let data = body.data;
+										let fileBody = JSON.parse(data);
+										let files = [];
+										let obj = new Object();
+										let obj1 = new Object();
+										obj.status = "success";
+										obj.listFileInfo = fileBody.listFileInfo;
+										obj1.imageUrl = fileTypeReturn.fileTypeSelect(fileBody.listFileInfo[0].fileName) == 'img' ? '/file/downloadThumbnail?fileInfoId=' + fileBody.listFileInfo[0].id : 'images/' + fileBody.listFileInfo[0].showPic + '.png';
+										files.push(obj);
+										files.push(obj1);
+
+										let newMsgIdTrue = UUIDUtil.getUUID().replace(/\-/g, '') + 'GroupMsg';
+										let newMsgIdSigleTrue = UUIDUtil.getUUID().replace(/\-/g, '');
+										this.setState({
+											sendMsgId: this.state.backPage == 'Group' ? newMsgIdTrue : newMsgIdSigleTrue,
+											messageBody: this.state.backPage == 'Group' ? {
+												"id": newMsgIdTrue,
+												"type": 2,
+												"messageType": 'image',
+												"basic": {
+													"userId": this.state.basic.jidNode,
+													"userName": this.state.basic.trueName,
+													"head": '',
+													"sendTime": new Date().getTime(),
+													"groupId": this.state.room.roomJid,
+													"groupName": this.state.room.roomName,
+													"type": 'groupChat'
+												},
+
+												"content": {
+													"text": '',
+													"interceptText": '',
+													"file": files,
+												},
+												"atMembers": [],
+												"occupant": {
+													"state": '',
+													"effect": '',
+													"active": ''
+												}
+											} : {
+												"id": newMsgIdSigleTrue,
+												"type": 2,
+												"messageType": 'image',
+												"basic": {
+													"toId": this.state.friendDetail.jidNode,
+													"type": "privateChat",
+													"fromId": this.state.basic.jidNode,
+													"userId": this.state.basic.userId,
+													"photoId": this.state.basic.photoId,
+													"userName": this.state.basic.trueName
+												},
+												"keyId": "privateSend00",
+												"content": {
+													"file": files,
+													"text": "",
+													"interceptText": '',
+													"sendTime": FormatDate.formatTimeStmpToFullTimeForSave(new Date().getTime()),
+													"imageFiles": []
+												},
+												"showTime": true
+											},
+										})
+
+										if (Platform.OS == 'ios') {
+											if (this.state.backPage == 'Group') {
+
+												if (this.state.room.mute == '1') {
+													this.refs.toast.show('您已被禁言，请联系管理员', DURATION.LENGTH_SHORT);
+
+												} else {
+													if (this.state.messageBody.content.file.length > 0) {
+														XMPP.XMPPSendGroupMessage({
+																'message': this.state.messageBody,
+																'jid': this.state.room.roomJid,
+																'uuid': newMsgIdTrue
+															},
+															(error, event) => {
+																if (error) {
+																	this.refs.toast.show(error, DURATION.LENGTH_SHORT);
+
+																} else {
+																	//this.refs.toast.show(event, DURATION.LENGTH_SHORT);
+																	this._saveToDB(2, '', '', '', this.state.room.roomJid, this.state.room.roomName, this.state.room.photoId, 'image', this.state.basic.trueName);
+
+																	// let mesbody = {};
+																	// mesbody['body'] = this.state.messageBody;
+																	// messagesBody.push(mesbody);
+																	// this.setState({
+																	//     data: messagesBody
+																	// })
+																}
+															})
+													} else {
+														this.refs.toast.show('发送失败', DURATION.LENGTH_SHORT);
+													}
+												}
+
+											} else {
+												if (this.state.messageBody.content.file.length > 0) {
+													//单聊
+													XMPP.XMPPSendMessage({
+														'message': this.state.messageBody,
+														'friendJid': this.state.friendDetail.jid,
+														'messageId': newMsgIdSigleTrue//this.state.messageBody.id
+													});
+													this._saveToDB(1, this.state.friendDetail.jidNode, this.state.friendDetail.trueName, this.state.friendDetail.photoId, '', '', '', 'image', '', newMsgIdSigleTrue);//入库当前朋友信息
+												}
+											}
+										} else {
+											let tempItemObj = {};
+											//android
+											if (this.state.backPage == 'Group') {
+												if (this.state.room.mute == '1') {
+													this.refs.toast.show('您已被禁言，请联系管理员', DURATION.LENGTH_SHORT);
+
+												} else {
+													tempItemObj.body = this.state.messageBody;
+													// let tempArr = [];
+													// tempArr.push(tempItemObj);
+													let tempData = JSON.parse(JSON.stringify(this.state.data));
+													tempData.splice(tempItemObjNotTrue.position, 1, tempItemObj);
+													this.setState({
+														data: tempData,
+														isNotPC: true
+													});
+													if (this.state.messageBody.content.file.length > 0) {
+														let sendGroupMsg = XmlUtil.sendGroup('groupchat', this.state.room.roomJid + Path.xmppGroupDomain, JSON.stringify(this.state.messageBody), newMsgIdTrue);
+														XMPP.sendStanza(sendGroupMsg);
+														// this._saveToDB(2, '', '', '', this.state.room.roomJid, this.state.room.roomName, this.state.room.photoId, 'image', this.state.basic.trueName, newMsgIdTrue);
+													}
+												}
+
+											} else {
+												tempItemObj.body = JSON.stringify(this.state.messageBody);
+												tempItemObj.sendType = 'to';
+												let tempArr = [];
+												tempArr.push(tempItemObj);
+												let tempData = JSON.parse(JSON.stringify(this.state.data));
+												tempData.splice(tempItemObjNotTrue.position, 1, tempItemObj);
+												this.setState({
+													data: tempData//this.state.data.concat(tempArr),
+												});
+												//单聊
+												if (this.state.messageBody.content.file.length > 0) {
+													// XMPP.message(JSON.stringify(this.state.messageBody), this.state.friendDetail.jid);
+													let sendSigleMsg = XmlUtil.sendGroup('chat', this.state.friendDetail.jid, JSON.stringify(this.state.messageBody), newMsgIdSigleTrue);
+													XMPP.sendStanza(sendSigleMsg);
+													this._saveToDB(1, this.state.friendDetail.jidNode, this.state.friendDetail.trueName, this.state.friendDetail.photoId, '', '', '', 'image', '', newMsgIdSigleTrue);//入库当前朋友信息
+												}
+											}
+										}
+										let imgArr = [];
+										let tempBody = this.state.messageBody;
+										imgArr.push({
+											url: Path.headImgNew + '?uuId=' + this.state.uuid + '&ticket=' + this.state.ticket + '&userId=' + this.state.basic.userId + '&imageName=' + tempBody.content.file[0].listFileInfo[0].fileName + '&imageId=' + tempBody.content.file[0].listFileInfo[0].id + '&sourceType=chatImage&jidNode=' + '' + '&platform=' + Platform.OS
+											// url: Path.baseImageUrl + '?uuId=' + uuid + '&ticket=' + this.state.ticket + '&fileId=' + tempBody.content.file[0].listFileInfo[0].id + '&fileName=' + tempBody.content.file[0].listFileInfo[0].fileName + '&type=image&userId=' + this.state.basic.userId,
+										})
+										keyCode[tempBody.content.file[0].listFileInfo[0].id] = this.state.msgImgList.length;
+										this.setState({
+											msgImgList: this.state.msgImgList.concat(imgArr)
+										})
+									} else {
+										this.setState({
+											isShowIcon: true,
+											isFailPosition: tempItemObjNotTrue.position
+										})
+									}
+
+								});
+								if (this.state.backPage == 'Group') {
+									PushUtil.pushGroupNotification(this.state.basic, this.state.ticket, this.state.room.roomJid, this.state.uuid, this.state.basic.trueName + ':[图片]', this.state.room.roomName, this.props.navigation);
+								} else {
+									PushUtil.pushSingleNotification(this.state.basic, this.state.ticket, this.state.friendDetail.jidNode, this.state.uuid, this.state.friendDetail.userId, '[图片]', this.state.basic.trueName, this.props.navigation);
+								}
+							} else {
+								Alert.alert(
+									'提醒',
+									'系统异常,请退出重试',
+									[
+										{
+											text: '确定',
+											onPress: () => {
+												//更新redis
+												RedisUtil.update(uuid, this.props.navigation, {
+													ticket: this.state.ticket,
+													userId: this.state.basic.userId,
+													uuId: uuid
+												}, 'lineStatus', 'back', () => {
+													//设备当前为“后台”状态
+													BackHandler.exitApp();
+												});
+											},
+										}
+									]
+								)
+							}
+						}, (msg) => {
+							console.log('error:', msg);
+							this.setState({
+								isShowIcon: true,
+								isFailPosition: tempItemObjNotTrue.position
+							})
+						}).catch((error) => {
+							// console.error('error', error)
+							this.setState({
+								isShowIcon: true,
+								isFailPosition: tempItemObjNotTrue.position
+							})
+						});
+
+					}, (error) => {
+						console.log('上传报错');
+						console.log(error);
+						this.setState({
+							showAlert: true,//alert框
+							tipMsg: error == "xmppError" ? '服务器连接异常，请重新连接后再试！' : "请检查您的网络状态！"//alert提示信息
+						});
+					});
+				});
+			}
+		}, (error) => {
+			this.setState({
+				showAlert: true,//alert框
+				tipMsg: error == "xmppError" ? '服务器连接异常，请重新连接后再试！' : "请检查您的网络状态！"//alert提示信息
+			});
+		});
 	};
 
 	onSwitchToMicrophoneMode = () => {
@@ -1145,6 +1500,7 @@ export default class Chat extends PureComponent {
 
 	fetchData() {
 		this.timeNum = 0;
+		let tempUserId = '';
 		if (this.state.backPage == 'Group') {
 			let url = Path.getGroupHistory + '?pageNum=' + this.state.nowPageNum + '&pageSize=' + Path.pageSizeNew + '&currentNum=' + this.state.currentNum + '&roomName=' + this.state.room.roomJid + Path.xmppGroupDomain
 				+ '&uuId=' + uuid + '&ticket=' + this.state.ticket + '&userId=' + this.state.basic.userId + "&version=1";
@@ -1180,10 +1536,66 @@ export default class Chat extends PureComponent {
 					messagesBody = messagesBody.filter(obj => !obj.time);
 					messagesBody.map((item, index) => {
 						let body = item.body && (typeof item.body == "string") ? JSON.parse(item.body) : item.body;
+						// ('群聊头像');
+						if (Global.personnel_photoId[body.basic.userId]) {
+							tempUserId = '&imageName=' + Global.personnel_photoId[body.basic.userId] + '&imageId=' + Global.personnel_photoId[body.basic.userId] + '&sourceType=singleImage&jidNode='
+						} else {
+							tempUserId = '&imageName=' + '' + '&imageId=' + '' + '&sourceType=singleImage&jidNode=' + body.basic.userId + '&headPhotoNum=' + Global.headPhotoNum
+						}
 
 						//像视图添加消息
 						let isSelfMsg = this.state.basic.jidNode == body.basic.userId ? true : false;
 						let imui_message = this.constructorXMPPMessage(isSelfMsg);
+						imui_message.fromUser.avatarPath = Path.headImgNew + '?uuId=' + this.state.uuid + '&ticket=' + this.state.ticket + '&userId=' + this.state.basic.userId + tempUserId;
+
+                        if(body.type == '0' || body.type == '3'){
+                        	//普通文本+表情
+							//文字
+							imui_message.text = body.content.text;
+							// if(body.content.text.indexOf('<img') != -1){
+							// 	//表情
+							// 	// let tempSrcFront = body.content.text.substr(0,body.content.text.indexOf('src="') + 5);
+							// 	let tempSrcCon = body.content.text.substring(body.content.text.indexOf('src="') + 5,body.content.text.indexOf('" title="'));
+							// 	// let tempSrcBack = body.content.text.substr(body.content.text.indexOf('" title="') + 8);
+							// 	// let resultSrc = tempSrcFront + Path.pcimoji + tempSrcCon + tempSrcBack;
+							// 	console.log(Path.pcimoji + tempSrcCon);
+							// 	imui_message.msgType = 'custom';
+							// 	imui_message.content = `<h5>PC发来的表情</h5>`;
+							// 	console.log(imui_message);
+							// }
+                        }else if(body.type == '2'){
+                            //文件类型 图片+文件+语音
+                            if(body.content.file.length > 0){
+                                //保证文件不为空
+                                let fileMsgType = body.content.file[0].listFileInfo[0].showPic;
+								let fileId = body.content.file[0].listFileInfo[0].id;
+                                switch (fileMsgType) {
+                                    case 'img': {
+                                        imui_message.msgType = 'image';
+                                        imui_message.mediaPath = Path.groupHeadImg + '?type=groupChat' + '&uuId=' + uuid + '&ticket=' + this.state.ticket + '&fileInfoId=' + fileId + '&userId=' + this.state.basic.userId;
+                                        break;
+                                    }
+                                    case 'audio': {
+                                    	imui_message.msgType = 'voice';
+                                    	imui_message.duration = body.soundTime;
+										imui_message.mediaPath = Path.baseImageUrl + '?uuId=' + uuid + '&ticket=' + this.state.ticket + '&fileId=' + fileId + '&fileName=' + fileId + '&type=file' + '&userId=' + this.state.basic.userId;
+										//需要将语音下载到本地后进行播放
+										this._downloadAac(fileId,imui_message);
+                                    	break;
+                                    }
+                                    default: {
+                                    	imui_message.msgType = 'custom';
+                                    	imui_message.text = '其他文件类型'
+                                    }
+                                }
+
+                            }
+
+                        }
+                        imui_message.timeString = FormatDate.formatTimeStmpToFullTime(body.basic.sendTime);
+                        imui_message.status = 'send_succeed';
+                        AuroraIController.appendMessages([imui_message]);
+
 
 						if (body && body.type && body.type.toString() == '2' && body.content.file && body.content.file.length > 0 && body.content.file[0].listFileInfo[0].showPic == 'img') {
 							imgArr.push({
@@ -1191,16 +1603,7 @@ export default class Chat extends PureComponent {
 							});
 							keyCode[body.content.file[0].listFileInfo[0].id] = i;
 							i++;
-							imui_message.msgType = 'image';
-						}else{
-							if(body && body.type == '0'){
-								imui_message.text = `${body.content.text}`;
-							}
 						}
-
-						imui_message.status = 'send_succeed';
-						AuroraIController.appendMessages([imui_message]);
-
 					});
 					this.setState({
 						data: messagesBody,
@@ -1233,6 +1636,13 @@ export default class Chat extends PureComponent {
 				});
 			}
 		} else {
+			//单聊头像
+			/*if (Global.personnel_photoId[body.basic.fromId]) {
+				tempUserId = '&imageName=' + Global.personnel_photoId[body.basic.fromId] + '&imageId=' + Global.personnel_photoId[body.basic.fromId] + '&sourceType=singleImage&jidNode='
+			} else {
+				tempUserId = '&imageName=' + this.state.friendDetail.photoId + '&imageId=' + this.state.friendDetail.photoId + '&sourceType=singleImage&jidNode='
+			}*/
+
 			//单聊
 			if (Platform.OS == 'ios') {
 				XMPP.XMPPGetHistoryMessageCount({
@@ -1479,6 +1889,9 @@ export default class Chat extends PureComponent {
 			isOutgoing: isOutgoing, //是否为自己发送的消息
 			timeString: date.getHours() + ":" + m, //消息发送时间
 			text:'默认文本内容', //消息内容
+            mediaPath: '', //图片消息 图片路径
+			duration:0, //视频消息
+			content: '', //自定义内容
 			fromUser: {
 				userId: this.state.basic.jidNode,
 				displayName: this.state.basic.trueName,
@@ -1925,7 +2338,25 @@ export default class Chat extends PureComponent {
 			console.log(messageBody);
 			if(messageBody.type == '0'){
 				imui_message.text = messageBody.content.text;
-			}
+			}else if(messageBody.type == '2'){
+			    //文件类型 图片+文件+语音
+                if(messageBody.content.file.length > 0){
+                    //保证文件不为空
+                    let fileMsgType = messageBody.content.file[0].listFileInfo[0].showPic;
+                    switch (fileMsgType) {
+                        case 'img': {
+                            imui_message.msgType = 'image';
+                            let fileId = messageBody.content.file[0].listFileInfo[0].id;
+                            imui_message.mediaPath = Path.groupHeadImg + '?type=groupChat' + '&uuId=' + uuid + '&ticket=' + this.state.ticket + '&fileInfoId=' + fileId + '&userId=' + this.state.basic.userId;
+                            break;
+                        }
+                        case 'audio': { imui_message.msgType = 'voice'; break; }
+                        default: { imui_message.msgType = 'custom'; }
+                    }
+
+                }
+
+            }
 			imui_message.timeString = FormatDate.formatTimeStmpToFullTime(messageBody.basic.sendTime);
 			AuroraIController.appendMessages([imui_message]);
 
@@ -3300,7 +3731,7 @@ export default class Chat extends PureComponent {
 		}
 	}
 	//下载语音文件到本地
-	_downloadAac = (fileId, callback) => {
+	_downloadAac = (fileId,message) => {
 		let url = Path.baseImageUrl + '?uuId=' + uuid + '&ticket=' + this.state.ticket + '&fileId=' + fileId + '&fileName=' + fileId + '&type=file' + '&userId=' + this.state.basic.userId;
 		let downloadDest = '/storage/emulated/0/Android/data/com.instantmessage/files/im/' + this.state.basic.userId + '/files';
 		RNFS.existsAssets(downloadDest).then((res) => {
@@ -3316,7 +3747,7 @@ export default class Chat extends PureComponent {
 				const ret = RNFS.downloadFile(options);
 				ret.promise.then(res => {
 					if (res.statusCode == 200) {
-						callback(downloadDest + '/' + fileId);
+						AuroraIController.updateMessage({...message, mediaPath: downloadDest + '/' + fileId});
 					}
 				}).catch(err => {
 				});
@@ -3409,14 +3840,16 @@ export default class Chat extends PureComponent {
 		}
 	};
 
-//上传声音文件
-	upLoadVoiceFile() {
+	/**
+	 *  上传语音文件
+	 */
+	upLoadVoiceFile(audioPath,message) {
 
 		let formData = new FormData();       //因为需要上传多张图片,所以需要遍历数组,把图片的路径数组放入formData中
 		let file = {
 			uri: Platform.OS == 'android' ? 'file://' + audioPath : audioPath,
 			type: 'multipart/form-data',
-			name: 'test.aac'
+			name: audioPath.substr(audioPath.lastIndexOf('/')+1)
 		};   //这里的key(uri和type和name)不能改变,
 		formData.append("files", file);
 
@@ -3430,8 +3863,11 @@ export default class Chat extends PureComponent {
 		fetch(url, options)
 			.then((response) => response.json())
 			.then((responseData) => {
-
+				console.log('上传语音');
+				console.log(responseData);
 				if (responseData.code.toString() == '200') {
+					AuroraIController.updateMessage({...message, status: 'send_succeed'});
+
 					responseData.data.map((item, index) => {
 
 						let body = JSON.parse(item);
@@ -3455,7 +3891,7 @@ export default class Chat extends PureComponent {
 								"id": newMsgId,
 								"type": 2,
 								"messageType": 'voice',
-								"soundTime": (endTime - beginTime) / 1000 < 1 ? 1 : Math.floor((endTime - beginTime) / 1000),
+								"soundTime": message.duration,
 								"basic": {
 									"userId": this.state.basic.jidNode,
 									"userName": this.state.basic.trueName,
@@ -3480,7 +3916,7 @@ export default class Chat extends PureComponent {
 								"id": newMsgIdSigle,
 								"type": 2,
 								"messageType": 'voice',
-								"soundTime": (endTime - beginTime) / 1000 < 1 ? 1 : Math.floor((endTime - beginTime) / 1000),
+								"soundTime": message.duration,
 								"basic": {
 									"toId": this.state.friendDetail.jidNode,
 									"type": "privateChat",
@@ -4778,23 +5214,6 @@ export default class Chat extends PureComponent {
 	myselfView(type, body, index, item) {
 		let tempViewBox;
 		let tempUserId = '';
-		/**
-		 *  头像判断
-		 */
-		if (this.state.backPage == 'Message') {
-			if (Global.personnel_photoId[body.basic.fromId]) {
-				tempUserId = '&imageName=' + Global.personnel_photoId[body.basic.fromId] + '&imageId=' + Global.personnel_photoId[body.basic.fromId] + '&sourceType=singleImage&jidNode='
-			} else {
-				tempUserId = '&imageName=' + this.state.friendDetail.photoId + '&imageId=' + this.state.friendDetail.photoId + '&sourceType=singleImage&jidNode='
-			}
-		} else {
-			// ('群聊头像');
-			if (Global.personnel_photoId[body.basic.userId]) {
-				tempUserId = '&imageName=' + Global.personnel_photoId[body.basic.userId] + '&imageId=' + Global.personnel_photoId[body.basic.userId] + '&sourceType=singleImage&jidNode='
-			} else {
-				tempUserId = '&imageName=' + '' + '&imageId=' + '' + '&sourceType=singleImage&jidNode=' + body.basic.userId + '&headPhotoNum=' + Global.headPhotoNum
-			}
-		}
 		/**
 		 *  页面类型判断
 		 */
